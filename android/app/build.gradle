@@ -1,0 +1,20 @@
+android {
+    // ... other configurations ...
+
+    defaultConfig {
+        // ...
+        externalNativeBuild {
+            cmake {
+                cppFlags "-O2 -frtti -fexceptions -Wall -fstack-protector-all -std=c++17"
+                abiFilters 'arm64-v8a', 'armeabi-v7a' // Target standard mobile CPU architectures
+            }
+        }
+    }
+
+    // Add this block to point Gradle to the CMake file we just created
+    externalNativeBuild {
+        cmake {
+            path "../CMakeLists.txt"
+        }
+    }
+}

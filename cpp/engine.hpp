@@ -10,6 +10,9 @@ email  : iralarushendra@gmail.com
 #include <vector>
 #include <atomic>
 #include <memory>
+#include <string>
+
+#include "model_runner.hpp"
 
 // The following struct is returned to JS through JSI
 struct AuthResult {
@@ -24,7 +27,7 @@ class GhostSyncEngine {
   GhostSyncEngine();
   ~GhostSyncEngine();
 
-  // The following constructor snippets makes sure that an instance cannot be copied or re-assigned
+  // Prevent copying and reassignment
   GhostSyncEngine(const GhostSyncEngine&) = delete;
   GhostSyncEngine& operator=(const GhostSyncEngine&) = delete;
 
@@ -37,13 +40,15 @@ class GhostSyncEngine {
 
   private:
 
+  GhostSyncModelRunner modelRunner_;
+
   // processLoop(...) runs as a dedicated background thread for NCNN interface
   // Runs as "Consumer Thread"
   void processLoop();
   
   std::thread workerThread_;
   std::mutex mutex_;
-  std::condition_variable_cv_;
+  std::condition_variable cv_;
   std::atomic<bool> isRunning_;
 
   // Shared Memory Space (Retains only latest frame)

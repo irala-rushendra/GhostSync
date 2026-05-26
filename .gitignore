@@ -1,0 +1,4 @@
+cpp/ncnn-mobile/
+cpp/vision_test
+cpp/engine_test
+*.o

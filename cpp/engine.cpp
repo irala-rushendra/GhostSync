@@ -3,17 +3,28 @@ author : irala rushendra
 email  : iralarushendra@gmail.com
 */
 
-#include "engine.h"
+#include "engine.hpp"
 #include <iostream>
 #include <chrono>
 
 using namespace std::chrono;
 
-GhostSyncEngine::GhostSyncEngine() : isRunning_(true), hasNewFrame_(false), frameWidth_(0), frameHeight_(0) 
-{
-    // Default state initialization
-    currentResult_ = {false, 0.0f, "", 0};
-    // workerThread_ starts the moment Engine is created
+GhostSyncEngine::GhostSyncEngine() {
+    isRunning_ = true;
+    hasNewFrame_ = false;
+    frameWidth_ = 0;
+    frameHeight_ = 0;
+    
+    // Initialize our mocked result
+    currentResult_.isLive = false;
+    currentResult_.confidenceScore = 0.0f;
+    currentResult_.userId = "";
+    currentResult_.processingTimeMs = 0;
+
+    // --- ADD THIS LINE ---
+    // Force the engine to load the models from the current directory "."
+    modelRunner_.loadModels("."); 
+
     workerThread_ = std::thread(&GhostSyncEngine::processLoop, this);
 }
 
@@ -68,33 +79,19 @@ void GhostSyncEngine::processLoop() {
 
         // NCNN Inference Pipeline Section
         auto startTime = std::chrono::high_resolution_clock::now();
-        
-        bool livenessPassed = false;
-        float faceMatchScore = 0.0f;
-        std::string authUser = "";
 
-        // TODO: In model_runner.cpp, we will implement the actual NCNN execution:
-        // 1. Convert localFrame (YUV/RGB) to ncnn::Mat
-        // 2. Run BlazeFace -> Check eye/head landmarks (Liveness)
-        // 3. If Live -> Crop face -> Run MobileFaceNet
-        // 4. Calculate Cosine Similarity against local database
+        // Execute the bare-metal C++ neural networks
+        auto [livenessPassed, faceMatchScore] = modelRunner_.runInference(localFrame, localWidth, localHeight);
 
-        // --- Mocking the NCNN processing time for testing ---
-        std::this_thread::sleep_for(std::chrono::milliseconds(210)); 
-        livenessPassed = true; 
-        faceMatchScore = 0.97f; 
-        authUser = "USR_8832";
-        // ----------------------------------------------------
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
 
-        auto endTime = high_resolution_clock::now();
-        auto durationMs = duration_cast<milliseconds>(endTime - startTime).count();
-
-        // Lock briefly to update the result state for the JS thread inside a scope
+        // Lock briefly to update the result state for the JS thread
         {
             std::lock_guard<std::mutex> lock(mutex_);
             currentResult_.isLive = livenessPassed;
             currentResult_.confidenceScore = faceMatchScore;
-            currentResult_.userId = authUser;
+            currentResult_.userId = "USR_8832"; // Placeholder UserID
             currentResult_.processingTimeMs = durationMs;
         }
     }
